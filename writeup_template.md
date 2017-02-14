@@ -18,7 +18,7 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
+[image1]: ./output_images/calibration1_undistorted.png "Undistorted view of calibration image 1"
 [image2]: ./test_images/test1.jpg "Road Transformed"
 [image3]: ./examples/binary_combo_example.jpg "Binary Example"
 [image4]: ./examples/warped_straight_lines.jpg "Warp Example"
@@ -39,11 +39,11 @@ You're reading it!
 
 ####1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+The camera calibration is performed in the custom-built "calibrateCamera" function (starting at line 10 of helperFunctions.py). 
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
+To calculate the the camera matrix and the distotion coefficients I utilized the calibrateCamera function of the openCV python library. Among other things, this function expects an array of image points and an array of corresponding object points as inputs. The image points were obtained by using OpenCVs findChessboardCorners function with the 20 provided calibration images. The object points are constructed by appending the expected 2D-coordinates of the corners of an ideal, flat chessboard to an initially empty vector 20 times (once for each calibration image).
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+Finally, the images are corrected (undistorted) by using openCVs unsdistort function (line 63 of advancedLaneFind.py) 
 
 ![alt text][image1]
 
