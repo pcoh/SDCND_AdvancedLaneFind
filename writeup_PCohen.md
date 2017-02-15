@@ -1,8 +1,4 @@
-##Writeup Template
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
-
+##Writeup 
 **Advanced Lane Finding Project**
 
 The goals / steps of this project are the following:
@@ -19,8 +15,8 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 
 [image1]: ./output_images/calibration1_undistorted.png "Undistorted view of calibration image 1"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
+[image2]: ./output_images/exampleFrame_uncorrected.png "Distorted example frame"
+[image3]: ./output_images/exampleFrame_distortionCorrected.png "Undistorted example frame"
 [image4]: ./examples/warped_straight_lines.jpg "Warp Example"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
@@ -42,12 +38,17 @@ To calculate the the camera matrix and the distotion coefficients I utilized the
 Finally, the images are corrected (undistorted) by using openCVs unsdistort function (line 63 of advancedLaneFind.py) 
 
 ![alt text][image1]
+Example of distorion-corrected calbration image
 
 ###Pipeline (single images)
 
 ####1. Provide an example of a distortion-corrected image.
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
+
 ![alt text][image2]
+Example of a uncorrected image taken from the video
+![alt text][image3]
+Example of a distortion-corrected image taken from the video
+
 ####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
