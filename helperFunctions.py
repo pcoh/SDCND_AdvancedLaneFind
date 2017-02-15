@@ -9,118 +9,152 @@ import math
 
 def calibrateCamera(calImages, nx, ny):
 	print('number of calibration images:', len(calImages))
+	
 	objPoints = []
 	imgPoints = []
+
+	#Define object points (same for every calibration image)
 	objP = np.zeros((nx*ny,3), np.float32)
 	objP[:,:2] = np.mgrid[0:nx,0:ny].T.reshape(-1,2)
 
 	# find image points and append to array:
+	# Loop through all available calibration images:
 	for fname in calImages:
+		# read current calibration image:
 		calImg = mpimg.imread(fname)
+		# convert calibration image to greyscale:
 		gray = cv2.cvtColor(calImg, cv2.COLOR_RGB2GRAY)
+
+		# Find all inside corners of the chessboards in the calibration images:
 		ret, corners = cv2.findChessboardCorners(gray, (nx, ny),None)
 
+		# If corners were found append them and the standard object points to the respective vector:
 		if ret==True:
 			imgPoints.append(corners)
 			objPoints.append(objP)
 
-			img = cv2.drawChessboardCorners(calImg, (nx,ny), corners, ret)
+			# Create image with the chessboard-corner-locations highlighted
+			# img = cv2.drawChessboardCorners(calImg, (nx,ny), corners, ret)
 			
 	# Calculate camera matrix and distortion coeffs:
 	ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objPoints, imgPoints, gray.shape[::-1],None,None)
 	return mtx, dist
 
-def abs_sobel_thresh(channel, orient='x', sobel_kernel=3, thresh=(0, 255)):
-	# Calculate directional gradient
+def abs_sobel_thresh(channel, orient='x', sobel_kernel=3, thresh=(0, 255)): #Creates thresholded image by applying the absolute of the sobel operator (calculated in x or in y direction) to the image/channel:
+	# Calculate directional gradient in x or in y-direction
 	if orient =='x':
 		sobel = cv2.Sobel(channel, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
 	elif orient =='y':
 		sobel= cv2.Sobel(channel, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
-
+	# Take the absolute value of the gradient and scale it from 0-255:
 	absSobel = np.absolute(sobel)
 	scaled = absSobel/np.max(absSobel)*255
+	# convert to integer:
 	scaled_uint8 = np.uint8(scaled)
+	# Create a zero matrix of the shape of the input image/channel:
 	grad_binary = np.zeros_like(scaled_uint8)
+	# Set the value of the matrix to 1 where the scaled absolute gradient is between the defined thresholds: 
 	grad_binary[(scaled_uint8>=thresh[0]) & (scaled_uint8 <=thresh[1])] = 1
 	return grad_binary
 
-def mag_sobel_thresh(channel, sobel_kernel=3, thresh=(0, 255)):
+def mag_sobel_thresh(channel, sobel_kernel=3, thresh=(0, 255)):#Creates thresholded image by applying the magnitude of the sobel operator to the image/channel:
 	# Calculate gradient magnitude
-	# Apply threshold
 	sobelx = cv2.Sobel(channel, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
 	sobely = cv2.Sobel(channel, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
-	mag = np.sqrt(np.square(sobelx) + np.square(sobely))
+	mag = np.sqrt(np.square(sobelx) + np.square(sobely))	
+	#scale mag from 0-255 and convert to integer:
 	scaled = np.uint8(mag/np.max(mag)*255)
+	# Create a zero matrix of the shape of the input image/channel:
 	mag_binary = np.zeros_like(scaled)
+	# Set the value of the matrix to 1 where the scaled mag gradient is between the defined thresholds: 
 	mag_binary[(scaled>thresh[0]) & (scaled<thresh[1])] = 1
 	return mag_binary
 
-def dir_threshold(channel, sobel_kernel=3, thresh=(0, np.pi/2)):
+def dir_threshold(channel, sobel_kernel=3, thresh=(0, np.pi/2)):#Creates thresholded image by applying the direction of the sobel operator to the image/channel:
 	# Calculate gradient direction
-	# Apply threshold
 	sobelx = cv2.Sobel(channel, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
 	sobely = cv2.Sobel(channel, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
-	
 	sobelx_abs = np.absolute(sobelx)
 	sobely_abs = np.absolute(sobely)
 	gradDir = np.arctan2(sobely_abs, sobelx_abs)
+	# Create a zero matrix of the shape of the input image/channel:
 	dir_binary = np.zeros_like(gradDir)
+	# Set the value of the matrix to 1 where the direction of the gradient are between the defined thresholds: 
 	dir_binary[(gradDir>=thresh[0]) & (gradDir<=thresh[1])] = 1
 	return dir_binary
 
-def color_threshold(channel, thresh=(170, 255)):
+def color_threshold(channel, thresh=(170, 255)):#Creates thresholded image by applying a threshold a color channel:
+	# scale channel from 0-255:
 	channel = np.uint8(channel/np.max(channel)*255)
+	# Create a zero matrix of the shape of the input image/channel:
 	color_binary = np.zeros_like(channel)
-	color_binary[(channel>=thresh[0]) & (channel<=thresh[1])] = 1
 
+	color_binary[(channel>=thresh[0]) & (channel<=thresh[1])] = 1
+	# Set the value of the matrix to 1 where the values of the channel are between the thresholds:
 	return color_binary
 
-def thresholding(image, abs_thresh, mag_thresh, dir_thresh, R_thresh, S_thresh):
+def thresholding(image, abs_thresh, mag_thresh, dir_thresh, R_thresh, S_thresh): #applies a combination of the above thresholing functions to the image:
+	# Extract the Red  channel form the RGB image:
 	R_channel = image[:,:,0]
+	# Create a grayscale version of the image:
 	gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-	hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS).astype(np.float)
 
+	# Create a HLS (Hue, Lightness, Saturation) version of the image:
+	hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS).astype(np.float)
+	# Extract the Hue channel form the HLS image:
 	H_channel = hls[:,:,0]
+	# Extract the Saturation channel form the HLS image:
 	S_channel = hls[:,:,2]
 
+	# create thresholded images applying the above thresholding functions:
 	grad_x_bin_gray = abs_sobel_thresh(gray, orient='x', sobel_kernel=3, thresh=abs_thresh)
 	# grad_y_bin_gray = abs_sobel_thresh(gray, orient='y', sobel_kernel=3, thresh=(20, 100))
 	grad_mag_bin_gray = mag_sobel_thresh(gray, sobel_kernel=9, thresh=mag_thresh)
 	grad_dir_bin_gray = dir_threshold(gray, sobel_kernel=19, thresh = dir_thresh)
 
-	grad_comb_bin_gray = np.zeros_like(grad_dir_bin_gray)
-	grad_comb_bin_gray[(grad_x_bin_gray==1) | ((grad_mag_bin_gray == 1) & (grad_dir_bin_gray == 1))] = 1
-
 	R_thresh_bin = color_threshold(R_channel, thresh=R_thresh)
 	S_thresh_bin = color_threshold(S_channel, thresh=S_thresh)
 
+
+	# Combine the gradient threshold images:
+	grad_comb_bin_gray = np.zeros_like(grad_dir_bin_gray)
+	grad_comb_bin_gray[(grad_x_bin_gray==1) | ((grad_mag_bin_gray == 1) & (grad_dir_bin_gray == 1))] = 1
+	
+	#Combine the color threshold images:
 	color_comb_bin = np.zeros_like(S_thresh_bin)
 	color_comb_bin[(R_thresh_bin==1) | (S_thresh_bin==1)]=1
 
+	#Combine gradient and color thresholding
 	total_comb_bin = np.zeros_like(grad_dir_bin_gray)
 	total_comb_bin[(grad_comb_bin_gray==1) | (color_comb_bin ==1)] = 1
 
 	return total_comb_bin
 
-def transformPerspective(perspective_img):
+def transformPerspective(perspective_img): #Creates a Bird-eye view of the image
+	# Define the source points for the transformation:
 	src = np.float32([[211,718.85],[603.97,445],[676.54,445],[1100,718.85]])
 	# src = np.float32([[211,718.85],[571,468],[712.1,468],[1100,718.85]])
 	
+	#Define the destinatio points for the transformation
 	dst = np.float32([[361,718.85],[361,0],[950,0],[950,718.85]])
+
+	# Caculate the transformation matrix the inverse (needed for transforming image back to the original view):
 	M = cv2.getPerspectiveTransform(src, dst)
 	Minv = cv2.getPerspectiveTransform(dst, src)
 
+	# Get image size:
 	imSize = (perspective_img.shape[1],perspective_img.shape[0] )
+	# transform the image:
 	transformed_img = cv2.warpPerspective(perspective_img, M, imSize)
 	
 	return transformed_img, Minv
 
 
-def fitLanePolynomial(leftx, lefty, rightx, righty, scaleX=1, scaleY=1):
+def fitLanePolynomial(leftx, lefty, rightx, righty, scaleX=1, scaleY=1): # Find coefficients of best-fit quadratic polinomial:
 	
+	# Apply scale to also allow calculation in real-world coordinates:	
 	lefty_scaled = np.array(lefty)*scaleY	
 	leftx_scaled = np.array(leftx)*scaleX
-
 	righty_scaled = np.array(righty)*scaleY	
 	rightx_scaled = np.array(rightx)*scaleX
 	
@@ -139,94 +173,96 @@ def fitLanePolynomial(leftx, lefty, rightx, righty, scaleX=1, scaleY=1):
 	# mirror the data around the bottom edge of the image to force the gradient to be 0 at the bottom edge
 	lefty_scaled = np.append(lefty_scaled+np.amax(lefty_scaled), lefty_scaled)
 	leftx_scaled = np.append(np.flipud(leftx_scaled), leftx_scaled)
-
 	righty_scaled = np.append(righty_scaled+np.amax(righty_scaled), righty_scaled)
 	rightx_scaled = np.append(np.flipud(rightx_scaled), rightx_scaled)
 
-	# Fit a second order polynomial to each
+	# Fit a second order polynomial to each and obain the coefficients of the polynomial:
 	left_fit = np.polyfit(lefty_scaled, leftx_scaled, 2)
 	right_fit = np.polyfit(righty_scaled, rightx_scaled, 2)
 
 	return left_fit, right_fit
 
-def evaluateFitX(fitCoeffs, yaxis):
+def evaluateFitX(fitCoeffs, yaxis): # Evaluates a quadratic polynomial defined by fitCoeffs at the positions defined by yaxis:
     fitx = fitCoeffs[0]*yaxis**2 + fitCoeffs[1]*yaxis + fitCoeffs[2]
     return fitx
-
-def plotPoly_initialFrame(binary_warped,left_fit, right_fit, out_img, left_lane_inds, right_lane_inds, nonzerox, nonzeroy):
-	ploty = createPlotYAxis(binary_warped)
-	left_fitx =  evaluateFitX(left_fit, ploty)
-	right_fitx =  evaluateFitX(rightt_fit, ploty)
-
-	# left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-	# right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-	# ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0])
-
-	out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-	out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
-	# plt.imshow(out_img)
-	# plt.plot(left_fitx, ploty, color='yellow')
-	# plt.plot(right_fitx, ploty, color='yellow')
-	# plt.xlim(0, 1280)
-	# plt.ylim(720, 0)
-	# plt.show()
-
-	return left_fitx, right_fitx, ploty, out_img
 
 def createPlotYAxis(binImage):
 	ploty = np.linspace(0, binImage.shape[0]-1, binImage.shape[0])
 	return ploty
 
-def plotPoly_nextFrame(binary_warped, left_fit, right_fit, left_lane_inds, right_lane_inds, nonzerox, nonzeroy, margin = 100):
-	# ploty = createPlotYAxis(binary_warped)
-	# left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-	# right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+# def plotPoly_initialFrame(binary_warped,left_fit, right_fit, out_img, left_lane_inds, right_lane_inds, nonzerox, nonzeroy):
+# 	# Evaluate fit along the entire y axis:
+# 	ploty = createPlotYAxis(binary_warped)
+# 	left_fitx =  evaluateFitX(left_fit, ploty)
+# 	right_fitx =  evaluateFitX(rightt_fit, ploty)
 
-	ploty = createPlotYAxis(binary_warped)
-	left_fitx =  evaluateFitX(left_fit, ploty)
-	right_fitx =  evaluateFitX(rightt_fit, ploty)
+# 	# left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+# 	# right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+# 	# ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0])
 
-	# out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
-	out_img = np.uint8(np.dstack((binary_warped, binary_warped, binary_warped))*255)
-	window_img = np.zeros_like(out_img)
-	# Color in left and right line pixels
-	out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-	out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+# 	out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+# 	out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+# 	plt.imshow(out_img)
+# 	plt.plot(left_fitx, ploty, color='yellow')
+# 	plt.plot(right_fitx, ploty, color='yellow')
+# 	plt.xlim(0, 1280)
+# 	plt.ylim(720, 0)
+# 	plt.show()
 
-	# Generate a polygon to illustrate the search window area
-	# And recast the x and y points into usable format for cv2.fillPoly()
-	left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
-	left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, ploty])))])
-	left_line_pts = np.hstack((left_line_window1, left_line_window2))
-	right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
-	right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, ploty])))])
-	right_line_pts = np.hstack((right_line_window1, right_line_window2))
+# 	return left_fitx, right_fitx, ploty, out_img
 
-	# Draw the lane onto the warped blank image
-	cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
-	cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
-	output = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
-	plt.imshow(output)
-	plt.plot(left_fitx, ploty, color='yellow')
-	plt.plot(right_fitx, ploty, color='yellow')
-	plt.xlim(0, 1280)
-	plt.ylim(720, 0)
-	plt.show()
 
-	return left_fitx, right_fitx, output
 
-def window_mask(width, height, img_ref, center,yCenter):
+# def plotPoly_nextFrame(binary_warped, left_fit, right_fit, left_lane_inds, right_lane_inds, nonzerox, nonzeroy, margin = 100):
+# 	# ploty = createPlotYAxis(binary_warped)
+# 	# left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+# 	# right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+# 	ploty = createPlotYAxis(binary_warped)
+# 	left_fitx =  evaluateFitX(left_fit, ploty)
+# 	right_fitx =  evaluateFitX(rightt_fit, ploty)
+
+# 	# out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
+# 	out_img = np.uint8(np.dstack((binary_warped, binary_warped, binary_warped))*255)
+# 	window_img = np.zeros_like(out_img)
+# 	# Color in left and right line pixels
+# 	out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+# 	out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+
+# 	# Generate a polygon to illustrate the search window area
+# 	# And recast the x and y points into usable format for cv2.fillPoly()
+# 	left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
+# 	left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, ploty])))])
+# 	left_line_pts = np.hstack((left_line_window1, left_line_window2))
+# 	right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
+# 	right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, ploty])))])
+# 	right_line_pts = np.hstack((right_line_window1, right_line_window2))
+
+# 	# Draw the lane onto the warped blank image
+# 	cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
+# 	cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
+# 	output = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
+# 	plt.imshow(output)
+# 	plt.plot(left_fitx, ploty, color='yellow')
+# 	plt.plot(right_fitx, ploty, color='yellow')
+# 	plt.xlim(0, 1280)
+# 	plt.ylim(720, 0)
+# 	plt.show()
+
+# 	return left_fitx, right_fitx, output
+
+def window_mask(width, height, img_ref, center,yCenter): # Defines a rectangular area of the image in which the search for the lane marker is conducted at the respective step:
 	output = np.zeros_like(img_ref)
-	# output[int(img_ref.shape[0]-(level+1)*height):int(img_ref.shape[0]-level*height),max(0,int(center-width/2)):min(int(center+width/2),img_ref.shape[1])] = 1
 	output[int(yCenter-height/2):int(yCenter+height/2),max(0,int(center-width/2)):min(int(center+width/2),img_ref.shape[1])] = 1
 	return output
 
-def find_window_centroids(image, window_width, window_height, margin, mode='full'):
+def find_window_centroids(image, window_width, window_height, margin, mode='full'): #uses the np.convolve to finds the midpoints of each horizontal slice (level) of the lane markers
 	convThresh = 60
 	lateralBuffer = 100
 	window_centroids_left = [] 
 	window_centroids_right = []
-	# Create window template that has higher values at center convolution properly centers around patches that are smaller than the window as well 
+	
+	# Create window template that has higher values at center so that the convolution properly centers even around patches (of lane markers) that are smaller than the window 
 	if (window_width % 2 == 0):
 		window_width = window_width + 1
 	window = np.ones(window_width)*0.5
@@ -237,11 +273,15 @@ def find_window_centroids(image, window_width, window_height, margin, mode='full
 	# Sum quarter bottom of image to get slice, could use a different ratio
 	offset = window_width/2
 	
-	imfract = 0.2
+	imfract = 0.2 # lower portion of the window to consider when looking for the starting position of the left and right lane markers
+	# make height of left bottom search area independent from sice of right bottom search area:
 	imfract_left = imfract
 	imfract_right = imfract
 	convVal_left = 0
 	convVal_right = 0
+
+	# Use convolution to find the lateral position of the staring point of the left and right lane markers
+	# However, if the result of the convolution is too small, increase the height of the search area
 	while convVal_left < convThresh:
 		l_sum = np.sum(image[int(image.shape[0]*(1-imfract_left)):,lateralBuffer:int(image.shape[1]/2)], axis=0)
 		convVal_left = np.amax(np.convolve(window,l_sum, mode))
@@ -257,16 +297,14 @@ def find_window_centroids(image, window_width, window_height, margin, mode='full
 	# print('imfract_right:',imfract_right)
 	
 	# print('l_center', l_center)
-	# Add what we found for the first layer
+	# Add starting point x positions to our list of centroids:
 	window_centroids_left.append(l_center)
 	window_centroids_right.append(r_center)
 
+	# Note that we wand to keep these x positions because the convolution indicated high overlap:
 	remainInd_left = [0]
 	remainInd_right = [0]
 
-
-	# lmax = [np.amax(np.convolve(window,l_sum, mode))]
-	# rmax = [np.amax(np.convolve(window,r_sum, mode))]
 	
 	# Go through each layer looking for max pixel locations
 	for level in range(1,(int)(image.shape[0]/window_height)):
@@ -275,21 +313,19 @@ def find_window_centroids(image, window_width, window_height, margin, mode='full
 		conv_signal = np.convolve(window, image_layer)
 		# Find the best left centroid by using past left center as a reference
 		# Use window_width/2 as offset because convolution signal reference is at right side of window, not center of window
-
 		l_min_index = int(max(l_center+offset-margin,0))
 		l_max_index = int(min(l_center+offset+margin,image.shape[1]))
 		
-		#Consider the Centroid only if the convolution yields a value above the threshold:
+		#Keep the so found centroid only if the convolution yields a value above the threshold:
 		if np.amax(conv_signal[l_min_index:l_max_index]) > convThresh:
 			l_center = np.argmax(conv_signal[l_min_index:l_max_index])+l_min_index-offset
-			remainInd_left.append(level)
-		
+			remainInd_left.append(level)		
 		
 		# Find the best right centroid by using past right center as a reference
 		r_min_index = int(max(r_center+offset-margin,0))
 		r_max_index = int(min(r_center+offset+margin,image.shape[1]))	
 
-		#Consider the Centroid only if the convolution yields a value above the threshold:
+		#Keep the so found centroid only if the convolution yields a value above the threshold:
 		if np.amax(conv_signal[r_min_index:r_max_index]) > convThresh:
 			r_center = np.argmax(conv_signal[r_min_index:r_max_index])+r_min_index-offset
 			remainInd_right.append(level)
@@ -297,15 +333,13 @@ def find_window_centroids(image, window_width, window_height, margin, mode='full
 		# Add what we found for that layer
 		window_centroids_left.append(l_center)
 		window_centroids_right.append(r_center)
-
-		# lmax.append(np.amax(conv_signal[l_min_index:l_max_index]))
-		# rmax.append(np.amax(conv_signal[r_min_index:r_max_index]))
-
 		
 	return window_centroids_left, window_centroids_right, remainInd_left, remainInd_right
 
 
 def find_window_centroids_nextFrame(image, window_width, window_height, left_fit, right_fit, margin, mode='full'):
+	#This function fulfills the same objective as find_window_centroids. However, it restricts its search to a margin area around the lane marker position of the previous frame.
+	#Therefore, finding the starting point is not necessary and the search of the centroids is performed in narrower areas
 	convThresh = 60
 	lateralBuffer = 100
 	window_centroids_left = [] 
@@ -321,12 +355,8 @@ def find_window_centroids_nextFrame(image, window_width, window_height, left_fit
 		window_width = window_width + 1
 	window = np.ones(window_width)*0.5
 	window[math.ceil(window_width/2)] = 1
-	
-	# First find the two starting positions for the left and right lane by using np.sum to get the vertical image slice
-	# and then np.convolve the vertical image slice with the window template     
-	# Sum quarter bottom of image to get slice, could use a different ratio
-	offset = window_width/2
-	
+
+	offset = window_width/2	
 	
 	remainInd_left = []
 	remainInd_right = []
@@ -354,21 +384,20 @@ def find_window_centroids_nextFrame(image, window_width, window_height, left_fit
 			l_center = np.argmax(conv_signal[l_min_index:l_max_index])+l_min_index-offset
 			remainInd_left.append(level)
 		else:
-			# Dummy value since this centroid will be removed in "excludeLowYieldCentroids"
+			# Dummy value OK since this centroid will be removed in "excludeLowYieldCentroids"
 			l_center = image.shape[1]		
 		
 		# Find the best right centroid by using past right center as a reference
 		r_min_index = int(min(max(startx_r+offset-margin,0),image.shape[1]-margin))
 		r_max_index = int(min(startx_r+offset+margin,image.shape[1]))	
-		# print('r_min_index: ',r_min_index)
-		# print('r_max_index: ',r_max_index)
+
 
 		#Consider the Centroid only if the convolution yields a value above the threshold:
 		if np.amax(conv_signal[r_min_index:r_max_index]) > convThresh:
 			r_center = np.argmax(conv_signal[r_min_index:r_max_index])+r_min_index-offset
 			remainInd_right.append(level)
 		else:
-			# Dummy value since this centroid will be removed in "excludeLowYieldCentroids"
+			# Dummy value OK since this centroid will be removed in "excludeLowYieldCentroids"
 			r_center = 0
 
 		# Add what we found for that layer
@@ -377,17 +406,17 @@ def find_window_centroids_nextFrame(image, window_width, window_height, left_fit
 		
 	return window_centroids_left, window_centroids_right, remainInd_left, remainInd_right
 
-def plotCentroidBoxes(warped,window_centroids_left, window_centroids_right,window_width, window_height, yCenters_left, yCenters_right, left_fitx, right_fitx):
-	# If we found any window centers
+def plotCentroidBoxes(warped,window_centroids_left, window_centroids_right,window_width, window_height, yCenters_left, yCenters_right, left_fitx, right_fitx): #Plots boxes around the centroids onto the birds-eye view 
+	
 	# Points used to draw all the left and right windows
 	l_points = np.zeros_like(warped)
 	r_points = np.zeros_like(warped)
 
+	# If we found any window centers
 	if len(window_centroids_left) > 0:	   
 		# Go through each level and draw the windows 	
 		for level in range(0,len(window_centroids_left)):
 			# Window_mask is a function to draw window areas
-			# l_mask = window_mask(window_width,window_height,warped,window_centroids_left[level],level)
 			l_mask = window_mask(window_width,window_height,warped,window_centroids_left[level],yCenters_left[level])
 			# Add graphic points from window mask here to total pixels found 
 			l_points[(l_points == 255) | ((l_mask == 1) ) ] = 255
@@ -396,7 +425,6 @@ def plotCentroidBoxes(warped,window_centroids_left, window_centroids_right,windo
 		# Go through each level and draw the windows
 		for level in range(0,len(window_centroids_right)):
 			# Window_mask is a function to draw window areas
-			# r_mask = window_mask(window_width,window_height,warped,window_centroids_right[level],level)
 			r_mask = window_mask(window_width,window_height,warped,window_centroids_right[level],yCenters_right[level])
 			# Add graphic points from window mask here to total pixels found 
 			r_points[(r_points == 255) | ((r_mask == 1) ) ] = 255
@@ -427,7 +455,7 @@ def plotCentroidBoxes(warped,window_centroids_left, window_centroids_right,windo
 	return centroidImg
 
 
-def excludeLowYieldCentroids(window_centroids_left, window_centroids_right, yCenters, remainInd_left, remainInd_right):
+def excludeLowYieldCentroids(window_centroids_left, window_centroids_right, yCenters, remainInd_left, remainInd_right): # find_window_centroids and find_window_centroids_nextFrame returned a centroid for every level, even those with  very little content. This function deletes those that are below a threshold
 	window_centroids_left = np.array(window_centroids_left)	
 	window_centroids_left = window_centroids_left[remainInd_left]
 	yCenters_left = yCenters[remainInd_left]
@@ -436,10 +464,9 @@ def excludeLowYieldCentroids(window_centroids_left, window_centroids_right, yCen
 	window_centroids_right = window_centroids_right[remainInd_right]
 	yCenters_right = yCenters[remainInd_right]
 
-
 	return window_centroids_left, window_centroids_right, yCenters_left, yCenters_right 
 
-def calcCurvAndGap(left_fit_scaled, right_fit_scaled, y_eval_scaled, imWidth_scaled):	
+def calcCurvAndGap(left_fit_scaled, right_fit_scaled, y_eval_scaled, imWidth_scaled):#Calculate the radius of the curvature of the lane line markers as well as the vehicle's deviation from the center of the lane
 	left_curverad = ((1 + (2*left_fit_scaled[0]*y_eval_scaled + left_fit_scaled[1])**2)**1.5) / np.absolute(2*left_fit_scaled[0])
 	right_curverad = ((1 + (2*right_fit_scaled[0]*y_eval_scaled + right_fit_scaled[1])**2)**1.5) / np.absolute(2*right_fit_scaled[0])
 
@@ -447,23 +474,25 @@ def calcCurvAndGap(left_fit_scaled, right_fit_scaled, y_eval_scaled, imWidth_sca
 	left_curverad = left_curverad*np.sign(left_fit_scaled[0])
 	right_curverad = right_curverad*np.sign(right_fit_scaled[0])
 
+	# round results to one decimal
 	left_curverad = round(left_curverad,1)
 	right_curverad = round(right_curverad,1)
-
 	
+	# establish lateral position of the lane lines in real-world terms
 	left_latPos  = left_fit_scaled[0]*y_eval_scaled**2 + left_fit_scaled[1]*y_eval_scaled + left_fit_scaled[2]
 	right_latPos = right_fit_scaled[0]*y_eval_scaled**2 + right_fit_scaled[1]*y_eval_scaled + right_fit_scaled[2]
-	
+	# Calculate position of lane center in real-world terms:
 	laneCenter = (left_latPos+right_latPos)/2
+	# Calculate position of centerline of vehicle in real-world terms:
 	vehicleCenter = imWidth_scaled/2
 	
-
+	# calculate distance from lane center to centerline of vehicle
 	driverGap = round(vehicleCenter -laneCenter,2) # positive if vehicle too far right
 
 	return left_curverad, right_curverad, driverGap
 
 
-def drawLanes_retransformed(undist, fitImg, Minv, left_fitx, right_fitx, left_curverad, right_curverad, driverGap):
+def drawLanes_retransformed(undist, fitImg, Minv, left_fitx, right_fitx, left_curverad, right_curverad, driverGap): # Draw lane on undistorted, untransformed image 
 	# Create an image to draw the lines on
 	warp_zero = np.zeros_like(fitImg[:,:,0]).astype(np.uint8)
 	color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
@@ -505,12 +534,18 @@ def drawLanes_retransformed(undist, fitImg, Minv, left_fitx, right_fitx, left_cu
 
 	return resultImg
 
-def checkLaneValidity(left_fit_scaled, right_fit_scaled, y_eval_scaled, imWidth_scaled, trueLaneWidth):
+def checkLaneValidity(left_fit_scaled, right_fit_scaled, y_eval_scaled, imWidth_scaled, trueLaneWidth): # Check if calculated lanes make sense
+	
+	# calculate lane width at far end of consideration area:
 	currLaneWidth_far = round(evaluateFitX(right_fit_scaled, 0) - evaluateFitX(left_fit_scaled, 0), 2)
+
+	# calculate lane width close to the car
 	currLaneWidth_near = round(evaluateFitX(right_fit_scaled, y_eval_scaled) - evaluateFitX(left_fit_scaled, y_eval_scaled),2)
 	# print("lanewidth Far: ", currLaneWidth_far)
 	# print("lanewidth Close: ", currLaneWidth_near)
 	# currLaneWidth_far = evaluateFitX(left_fit_scaled, y_eval_scaled)
+
+	# If lane width at the far end of the consideration area is greater than a certain value, something is wrong:
 	if currLaneWidth_far > 6.4:
 		laneValid = False
 	else:
