@@ -47,8 +47,8 @@ Example of distorion-corrected calbration image
 |![alt text][image2]|![alt text][image3]|
 |Example of a uncorrected image taken from the video|Example of a distortion-corrected image taken from the video|
 
-| <img src="./output_images/exampleFrame_uncorrected.png" alt="" style="width: 300px;"/> | <img src="./output_images/exampleFrame_distortionCorrected.png" alt="" style="width: 300px;"/> |
-| Uncorrected Image | Distortion corrected image |
+| <img src="./output_images/exampleFrame_uncorrected.png" alt="" style="width: 200px;"/> |
+| Uncorrected Image |
 
 ####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 The thresholding is done via a combination of different gradient thresholds as well as color thresholds. The combination is defined in function "thresholding" as defined in helperFunctions.py line 96 and following). This function makes use of the following thresholding techniques:
