@@ -191,7 +191,7 @@ Here's a [link to my video result](./project_video_annotated_1.mp4)
 
 ####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-The greates weakness of the current pipeline still lies in the limitations of the thresholding. Changing lighting conditions as well as shadows can still lead to false results. Also, what would happen if other cars drive in or cross into/out of the lane in front of the camera?
+The greatest weakness of the current pipeline still lies in the limitations of the thresholding. Changing lighting conditions as well as shadows can still lead to false results. Also, what would happen if other cars drive in or cross into/out of the lane in front of the camera?
 
 An interesting problem is also created by the roughness/bumpiness of the road.
 The vehicles' pitch and heave motion (caused by bumps) leads to rapid changes in actual perspective. This means that the actual (real world) distance that falls into the region of interst as defined in the perspective transformation changes abruptly from image to image. As a result the distance (in pixels!) between the far ends of the two lane lines also changes abruptly. A narrow margin (area around the prevous results in which the algoritm searches for the lane lines) however prevents large changes in calculated lane line positions from frame to frame. as a result the calculated lane lines often deviate somewhat from the actual lane lines. However, increasing the margin will yield to situations in which the wrong features are mistaken for lane lines.
