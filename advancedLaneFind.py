@@ -33,7 +33,7 @@ print('number of frames in video: ',num_frames)
 
 #Choose which frames of the video to consider:
 # frames = [100,101,102,103,104]
-frames = [870]
+frames = [933]
 # frames = np.arange(0,num_frames,1)
 # frames = np.arange(0,192,1)
 
@@ -151,6 +151,11 @@ for frame in frames:
     cv2.putText(resultImg,'Lane width @near: %sm' % (currLaneWidth_near),(10,170), font, 0.9,(255,138,0),2,cv2.LINE_AA)
     cv2.putText(resultImg,'Lane width @far: %sm' % (currLaneWidth_far),(10,210), font, 0.9,(255,138,0),2,cv2.LINE_AA)
     cv2.putText(resultImg,'Frame: %s' % (frame),(10,250), font, 0.9,(255,138,0),2,cv2.LINE_AA)
+
+    plt.imshow(resultImg)
+    plt.show()
+
+
    
     #append annotated frame to video:
     writer.append_data(resultImg)

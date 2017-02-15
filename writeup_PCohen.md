@@ -18,8 +18,19 @@ The goals / steps of this project are the following:
 [image2]: ./output_images/exampleFrame_uncorrected.png "Distorted example frame"
 [image3]: ./output_images/exampleFrame_distortionCorrected.png "Undistorted example frame"
 [image4]: ./output_images/exampleFrame_thresholded.png "Thresholded frame"
-[image5]: ./output_images/exampleFrame_topView.jpg "Transformed (Top-View) image"
-[image6]: ./examples/example_output.jpg "Output"
+[image5]: ./output_images/exampleFrame_topView.png "Transformed (Top-View) image"
+[image6]: ./output_images/exampleFrame_CentroidBoxes.png "Centroid Boxes"
+[image7]: ./output_images/exampleFrame_CentroidBoxesExcluded.png "Centroid 
+Boxes Excluded"
+[image8]: ./output_images/exampleFrame_PolynomialsDrawn.png "Centroid 
+Boxes Excluded"
+[image9]: ./output_images/exampleFrame_LaneSuperImposed.png "Centroid 
+Boxes Excluded"
+[image10]: ./output_images/exampleFrame_annotated.png "Centroid 
+Boxes Excluded"
+
+
+
 [video1]: ./project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
@@ -44,8 +55,13 @@ Example of distorion-corrected calbration image
 
 ####1. Provide an example of a distortion-corrected image.
 
-| <img src="./output_images/exampleFrame_uncorrected.png" alt="" style="width: 200px;"/> |
-| Uncorrected Image |
+![alt text][image2]
+Example of a uncorrected image taken from the video
+
+
+![alt text][image3]
+Example of a distortion-corrected image taken from the video
+
 
 ####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 The thresholding is done via a combination of different gradient thresholds as well as color thresholds. The combination is defined in function "thresholding" as defined in helperFunctions.py line 96 and following). This function makes use of the following thresholding techniques:
@@ -106,8 +122,17 @@ While it is very similar to Method 1, there are two main differences:
 1. The heights of **all** slices(levels) are determined as the image-height divided by the number of slices (no exception for the bottom slice)
 2. The search for the highest value of the convolution is restricted to a certain area around the lines defined by the lane line polynomials of the last frame (timestep). The width of that area is defined by the *margin* parameter
 
+![alt text][image6]
+Boxes drawn around identified centroids
+
+
 **Excluding questionable centroids**
 As mentioned above, centroids of questionable validity are removed using the excludeLowYieldCentroids function (line 458). This function is envoked in advancedLaneFind.py on line 104 - after the centroids have been identified, but before the polynomals are fitted. 
+
+![alt text][image7]
+Example of situation in which two centroids for the left line were removed due to low yield
+
+
 
 **Fitting the polynomials**
 Once the questionable centroids have been removed, the remaining centroids are used to fit a quadradic polynomial function. This is done to obtain continuous lane lines as well as to facilitate calculating the lanes' geometric properties.See the fitLanePolynimial function on line 153 of helperfunctions.py. 
@@ -116,6 +141,11 @@ Because we know that the vehicle is (almost) parallel to the lane lines, I am fo
 
 Also, I wanted to make sure the polynomial has a minimal error at the bottom of the image (close to the car). I therefore created two duplicates of the bottom-most left and right centroids before fitting the polynomial (See line 161 and below).
 
+![alt text][image8]
+Example of polynomials fitted through centroids
+
+
+
 Check VALIDITY OF FITS
 WHEN TO USE WHICH METHOD
 
@@ -123,7 +153,7 @@ WHAT TO DO IF INVALID
 
 
 
-![alt text][image5]
+
 
 ####5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
@@ -133,7 +163,11 @@ I did this in lines # through # in my code in `my_other_file.py`
 
 I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
 
-![alt text][image6]
+![alt text][image9]
+Example with lane area superimposed
+
+![alt text][image10]
+Example with geometric information
 
 ---
 
