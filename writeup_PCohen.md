@@ -17,7 +17,7 @@ The goals / steps of this project are the following:
 [image1]: ./output_images/calibration1_undistorted.png "Undistorted view of calibration image 1"
 [image2]: ./output_images/exampleFrame_uncorrected.png "Distorted example frame"
 [image3]: ./output_images/exampleFrame_distortionCorrected.png "Undistorted example frame"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
+[image4]: ./output_images/exampleFrame_thresholded.png "Thresholded frame"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
@@ -60,9 +60,9 @@ The thresholding is done via a combination of different gradient thresholds as w
 * Thresholding by Saturation
 
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+To enable the trhresholding function, the image had to be converted to grayscale as well as to HLS mode with the OpenCV function cvtColor
 
-![alt text][image3]
+![alt text][image4]
 
 ####3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
