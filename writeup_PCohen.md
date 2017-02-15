@@ -44,9 +44,6 @@ Example of distorion-corrected calbration image
 
 ####1. Provide an example of a distortion-corrected image.
 
-|![alt text][image2]|![alt text][image3]|
-|Example of a uncorrected image taken from the video|Example of a distortion-corrected image taken from the video|
-
 | <img src="./output_images/exampleFrame_uncorrected.png" alt="" style="width: 200px;"/> |
 | Uncorrected Image |
 
