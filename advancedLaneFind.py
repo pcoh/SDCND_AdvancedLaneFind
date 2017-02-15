@@ -150,7 +150,7 @@ for frame in frames:
     cv2.putText(resultImg,'Lateral Deviation: %sm' % (driverGap),(10,130), font, 0.9,(255,138,0),2,cv2.LINE_AA)
     cv2.putText(resultImg,'Lane width @near: %sm' % (currLaneWidth_near),(10,170), font, 0.9,(255,138,0),2,cv2.LINE_AA)
     cv2.putText(resultImg,'Lane width @far: %sm' % (currLaneWidth_far),(10,210), font, 0.9,(255,138,0),2,cv2.LINE_AA)
-    cv2.putText(resultImg,'Frame: %s' % (frame),(10,250), font, 0.9,(255,138,0),2,cv2.LINE_AA)
+    # cv2.putText(resultImg,'Frame: %s' % (frame),(10,250), font, 0.9,(255,138,0),2,cv2.LINE_AA)
 
     plt.imshow(resultImg)
     plt.show()

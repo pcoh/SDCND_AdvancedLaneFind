@@ -20,16 +20,10 @@ The goals / steps of this project are the following:
 [image4]: ./output_images/exampleFrame_thresholded.png "Thresholded frame"
 [image5]: ./output_images/exampleFrame_topView.png "Transformed (Top-View) image"
 [image6]: ./output_images/exampleFrame_CentroidBoxes.png "Centroid Boxes"
-[image7]: ./output_images/exampleFrame_CentroidBoxesExcluded.png "Centroid 
-Boxes Excluded"
-[image8]: ./output_images/exampleFrame_PolynomialsDrawn.png "Centroid 
-Boxes Excluded"
-[image9]: ./output_images/exampleFrame_LaneSuperImposed.png "Centroid 
-Boxes Excluded"
-[image10]: ./output_images/exampleFrame_annotated.png "Centroid 
-Boxes Excluded"
-
-
+[image7]: ./output_images/exampleFrame_CentroidBoxesExcluded.png "Centroid Boxes Excluded"
+[image8]: ./output_images/exampleFrame_PolynomialsDrawn.png "Plynomials drawn"
+[image9]: ./output_images/exampleFrame_LaneSuperImposed.png "Lane area superimposed"
+[image10]: ./output_images/exampleFrame_annotated.png "Geometric information"
 
 [video1]: ./project_video.mp4 "Video"
 
