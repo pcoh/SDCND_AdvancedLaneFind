@@ -60,8 +60,8 @@ for frame in frames:
     currImg = vid.get_data(frame)
 
     # plot untreated image:
-    plt.imshow(currImg)
-    plt.show()
+    # plt.imshow(currImg)
+    # plt.show()
 
     # Correction (undistort) image:
     undistImg = cv2.undistort(currImg, mtx, dist, None, mtx)
@@ -71,6 +71,9 @@ for frame in frames:
 
     # Apply Color/gradient thresholding:
     thresh_img = thresholding(undistImg, abs_thresh = (20, 100), mag_thresh = (30, 100), dir_thresh = (0.7, 1.3), R_thresh = (220, 255), S_thresh = (170,240))
+
+    # plt.imshow(thresh_img, cmap="gray")
+    # plt.show()
 
     # Perform perspective transform to obtain top view:
     topView_img, Minv = transformPerspective(thresh_img)

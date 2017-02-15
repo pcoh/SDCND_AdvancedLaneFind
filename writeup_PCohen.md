@@ -45,11 +45,21 @@ Example of distorion-corrected calbration image
 ####1. Provide an example of a distortion-corrected image.
 
 ![alt text][image2]
+
 Example of a uncorrected image taken from the video
 ![alt text][image3]
+
 Example of a distortion-corrected image taken from the video
 
 ####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+The thresholding is done via a combination of different gradient thresholds as well as color thresholds. The combination is defined in function "thresholding" as defined in helperFunctions.py line 96 and following). This function makes use of the following thresholding techniques:
+* Absolute sobel gradient thresholding (in x-direction) (defined in helperFunctions.py line 43 and following)
+* Magnitude sobel gradient thresholding (defined in helperFunctions.py line 60 and following)
+* Thresholding by direction of sobel gradient (defined in helperFunctions.py line 73 and following)
+* Thresholding by Hue (color channel thresholding defined in helperFunctions.py line 86 and following))
+* Thresholding by Saturation
+
+
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
 ![alt text][image3]
