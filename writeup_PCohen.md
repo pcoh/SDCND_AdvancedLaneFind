@@ -18,7 +18,7 @@ The goals / steps of this project are the following:
 [image2]: ./output_images/exampleFrame_uncorrected.png "Distorted example frame"
 [image3]: ./output_images/exampleFrame_distortionCorrected.png "Undistorted example frame"
 [image4]: ./output_images/exampleFrame_thresholded.png "Thresholded frame"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
+[image5]: ./output_images/exampleFrame_topView.jpg "Transformed (Top-View) image"
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
 
@@ -60,43 +60,68 @@ The thresholding is done via a combination of different gradient thresholds as w
 * Thresholding by Saturation
 
 
-To enable the trhresholding function, the image had to be converted to grayscale as well as to HLS mode with the OpenCV function cvtColor
+To enable the thresholding function, the image had to be converted to grayscale as well as to HLS mode with the hel of the OpenCV function cvtColor
+
+In the main script advancedLaneFind.py, the thresholding is called on line 72
 
 ![alt text][image4]
 
 ####3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+The perspective transform is called in advancedLaneFind.py on line 78 and defined in helperfunctions.py on line 133. It accepts the thresholded image and ultimately performs the transformation via the openCV function warpPerspective. The transformation matrix used in warpPerspective is created via openCV's getPerspectiveTransform function. 
 
-```
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-
-```
-This resulted in the following source and destination points:
+getPerspectiveTransform requires a set of source pints as well as destination points to calculate the transformation matrix. These points were defined manually and hardcoded as follows:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 211, 718.85   | 361, 718.85   | 
+| 603.97, 445   | 361, 0        |
+| 676.54, 445   | 950, 0        |
+| 1100, 718.85  | 950, 718.85   |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
-![alt text][image4]
+I was able to verify that the perspective transform was working properly by applying it to the provided straight-line test images and verifying that the lane lines appeared close to parallel in the transformed image.
 
 ####4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+The first big step is to condense the numerous pixels that are deemed to belong to the lane markers down to a set of "centroids" for each lane line (that is one set for left lane line, one set for right lane line).
+
+Depending on the situation I use two slightly different methods for calculating the positions of the centroids.
+
+**Method 1**
+Method 1 is called "find_window_centroids" and is defined starting on line 259 of helperfunctions.py. 
+This method divides the transformed (top view) image into several (currently 9) horizontal slices (called levels). For each slice, it finds two "centroids" i.e. the center positions of the pixels presumably belonging to the left and the right lane markers, respectively. 
+The vertical position of those centroids is simply the mid-point between the bottom and the top of the respective horizontal slice.
+The lateral position of each centroid is determined by convolving the horizontal slice into a pregenerated window and then searching for the position of the maximum result of the convolution within a certain lateral range. This lateral range of the left centroids might for example be defined as the left half of the horizontal slice. 
+Note: To increase robustness, I narrowed the slice by disregarding the areas closest to the left and right borders of the image. The width that is disregarded is defined by the parameter "lateralBuffer" which is set on line 261 of helperfunctions.pt
+Also note, the window used for the convolution does not have uniform values (e.g.: all 1s)for the following reason: If the slice only contains a blob of points that presumably belong to the lane markers and this blob is smaller than the window, then the convolution yields the same results for several lateral positions. Choosing a window with greater values at its lateral center yields a well defined peak in the result of the convolution, thus allowing us to zero in on the center.
+
+Given that the lane markers are not always solid lines but can be broken (dashed) it is possible that there isn't enough lane line content in each slice to robustly identify the lane marker. In those cases, the convolution method might "latch on" to noise (e.g. shadows that weren't excluded during the thresholding)
+To avoid the negative impact of this behavior on our lane-line polynomials, I dismiss all centroids that are generated on the basis of a "low-yield" convolution. In other words, if the maximum value the convolution yields is below a certain threshold (convThresh defined on line 260) the centroid will be disregarded. The actual removal of these centroids is done in the (excludeLowYieldCentroids function which is defined on line 458 and deployed before the fitting of the polynomials)
+
+While the above describes how Method 1 calculates the positions of the centroids for most slices, the first (bottom) centroid (on each side) is an exception. Here, instead of defining the slice-height by the image-height divided by the number of slices, the slice heights (separate for left and right) are a fraction of the image height defined by the variables imfract_left and imfract_right. These fractions are initially set by the user (see line 276) but if the max values of the resulting convolutions are below the threshold, then these fractions are increased until this condition is satisfied.
+
+**Method 2**
+Method 2 is called find_window_centroids_nextFrame and is defined in helperFunctions on line 340.
+While it is very similar to Method 1,  there are two main differences:
+1. The centroids for all slices(levels) are determined in the same way (no exception for the bottom centroids)
+2. The search for the highest value of the convolution is restricted to a certain area around the lines defined by the lane line polynomials of the last frame (timestep)
+
+**Excluding questionable centroids**
+As mentioned above, questionable centroids are removed using the excludeLowYieldCentroids function (line 458). This function is envoked in advancedLaneFind.py on line 104 - after the centroids have been identified, but before the polynomals are fitted. 
+
+**Fitting the polynomials**
+Once the questionable centroids have been removed, the remaining centroids are used to fit a quadradic polynomial function. This is done to obtain continuous lane lines as well as to facilitate calculating the lanes geometric properties.See the fitLanePolynimial function on line 153 of helperfunctions.py. 
+
+Because we know that the vehicle is (almost) parallel to the lane lines, I wanted to force the gradient of the polynomial function to be zero at the bottom of the image. This was achieved by mirroring the centroid data around the bottom edge of the image. (See line 173 and below)
+
+Also, I wanted to make sure the polynomial has minimal error close to the car (at the bottom of the image). I therefore created two duplicates of the bottom-most left and right centroids before fitting the polynomial (See line 161 and below) 
+
+Check VALIDITY OF FITS
+
+WHAT TO DO IF INVALID
+
+
 
 ![alt text][image5]
 

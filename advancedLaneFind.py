@@ -59,27 +59,26 @@ for frame in frames:
     print('Processing frame ', frame)
     currImg = vid.get_data(frame)
 
-    # plot untreated image:
-    plt.imshow(currImg)
-    plt.show()
+    # plt.imshow(currImg)
+    # plt.show()
 
     # Correction (undistort) image:
     undistImg = cv2.undistort(currImg, mtx, dist, None, mtx)
 
-    plt.imshow(undistImg)
-    plt.show()
+    # plt.imshow(undistImg)
+    # plt.show()
 
     # Apply Color/gradient thresholding:
     thresh_img = thresholding(undistImg, abs_thresh = (20, 100), mag_thresh = (30, 100), dir_thresh = (0.7, 1.3), R_thresh = (220, 255), S_thresh = (170,240))
 
-    plt.imshow(thresh_img, cmap="gray")
-    plt.show()
+    # plt.imshow(thresh_img, cmap="gray")
+    # plt.show()
 
     # Perform perspective transform to obtain top view:
     topView_img, Minv = transformPerspective(thresh_img)
 
-    plt.imshow(topView_img, cmap="gray")
-    plt.show()
+    # plt.imshow(topView_img, cmap="gray")
+    # plt.show()
 
     # Remove small specs (Noise) from top view image:
     kernel = np.ones((openkernelSize,openkernelSize), np.uint8)
