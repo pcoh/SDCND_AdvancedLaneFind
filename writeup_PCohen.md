@@ -44,12 +44,8 @@ Example of distorion-corrected calbration image
 
 ####1. Provide an example of a distortion-corrected image.
 
-![alt text][image2]
-
-Example of a uncorrected image taken from the video
-![alt text][image3]
-
-Example of a distortion-corrected image taken from the video
+|![alt text][image2]|![alt text][image3]|
+|Example of a uncorrected image taken from the video|Example of a distortion-corrected image taken from the video|
 
 ####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 The thresholding is done via a combination of different gradient thresholds as well as color thresholds. The combination is defined in function "thresholding" as defined in helperFunctions.py line 96 and following). This function makes use of the following thresholding techniques:
@@ -82,42 +78,46 @@ getPerspectiveTransform requires a set of source pints as well as destination po
 
 I was able to verify that the perspective transform was working properly by applying it to the provided straight-line test images and verifying that the lane lines appeared close to parallel in the transformed image.
 
+![alt text][image5]
+
 ####4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-The first big step is to condense the numerous pixels that are deemed to belong to the lane markers down to a set of "centroids" for each lane line (that is one set for left lane line, one set for right lane line).
+The first big step I take is to condense the numerous pixels that are deemed to belong to the lane markers down to a set of "centroids" for each lane line (that is one set for left lane line, one set for right lane line).
 
 Depending on the situation I use two slightly different methods for calculating the positions of the centroids.
 
 **Method 1**
+
 Method 1 is called "find_window_centroids" and is defined starting on line 259 of helperfunctions.py. 
 This method divides the transformed (top view) image into several (currently 9) horizontal slices (called levels). For each slice, it finds two "centroids" i.e. the center positions of the pixels presumably belonging to the left and the right lane markers, respectively. 
 The vertical position of those centroids is simply the mid-point between the bottom and the top of the respective horizontal slice.
-The lateral position of each centroid is determined by convolving the horizontal slice into a pregenerated window and then searching for the position of the maximum result of the convolution within a certain lateral range. This lateral range of the left centroids might for example be defined as the left half of the horizontal slice. 
-Note: To increase robustness, I narrowed the slice by disregarding the areas closest to the left and right borders of the image. The width that is disregarded is defined by the parameter "lateralBuffer" which is set on line 261 of helperfunctions.pt
-Also note, the window used for the convolution does not have uniform values (e.g.: all 1s)for the following reason: If the slice only contains a blob of points that presumably belong to the lane markers and this blob is smaller than the window, then the convolution yields the same results for several lateral positions. Choosing a window with greater values at its lateral center yields a well defined peak in the result of the convolution, thus allowing us to zero in on the center.
+The lateral position of each centroid is determined by convolving the horizontal slice into a predefined window and then searching for the position of the maximum result of the convolution within a certain lateral range. This lateral range of the left centroids might for example be defined as the left half of the horizontal slice. However, to increase robustness, I narrowed the slice by disregarding the areas closest to the left and right borders of the image. The width that is disregarded is defined by the parameter "lateralBuffer" which is set on line 261 of helperfunctions.pt
+Note: The window used for the convolution does not consist of uniform values (e.g.: all 1s)for the following reason: If the slice only contains a blob of points (that presumably belong to the lane markers) and this blob is smaller than the window, then the convolution yields the same results for several lateral positions of the window. Choosing a window with greater values at its  center yields a well defined peak in the result of the convolution, thus allowing us to zero in on the center of the blob.
 
-Given that the lane markers are not always solid lines but can be broken (dashed) it is possible that there isn't enough lane line content in each slice to robustly identify the lane marker. In those cases, the convolution method might "latch on" to noise (e.g. shadows that weren't excluded during the thresholding)
-To avoid the negative impact of this behavior on our lane-line polynomials, I dismiss all centroids that are generated on the basis of a "low-yield" convolution. In other words, if the maximum value the convolution yields is below a certain threshold (convThresh defined on line 260) the centroid will be disregarded. The actual removal of these centroids is done in the (excludeLowYieldCentroids function which is defined on line 458 and deployed before the fitting of the polynomials)
+Given that the lane markers are not always solid (lines can be dashed) it is possible that there isn't enough lane line content in each slice to robustly identify the lane marker. In those cases, the convolution method might "latch on" to noise (e.g. shadows that weren't excluded during the thresholding).
+To avoid the negative impact of this behavior on our lane-line polynomials, I dismiss all centroids that are generated on the basis of a "low-yield" convolution. In other words, if the maximum value the convolution yields is below a certain threshold (convThresh defined on line 260) the resulting centroid will be disregarded. The actual removal of these centroids is done in the excludeLowYieldCentroids function which is defined on line 458 and deployed before the fitting of the polynomials
 
-While the above describes how Method 1 calculates the positions of the centroids for most slices, the first (bottom) centroid (on each side) is an exception. Here, instead of defining the slice-height by the image-height divided by the number of slices, the slice heights (separate for left and right) are a fraction of the image height defined by the variables imfract_left and imfract_right. These fractions are initially set by the user (see line 276) but if the max values of the resulting convolutions are below the threshold, then these fractions are increased until this condition is satisfied.
+While the above describes how Method 1 calculates the positions of the centroids for **most** slices, the first (bottom) centroid (on each side) is an exception. Here, instead of defining the slice-height as the image-height divided by the number of slices, the slice height (separate for left and right) is a fraction of the image height defined by the variables *imfract_left* and *imfract_right*. These fractions are initially set by the user (see line 276) but if the maximu values of the resulting convolutions are below the threshold, these fractions are increased step-wise until the maximum value of the convolution exceeds the threshold value.
 
 **Method 2**
+
 Method 2 is called find_window_centroids_nextFrame and is defined in helperFunctions on line 340.
-While it is very similar to Method 1,  there are two main differences:
-1. The centroids for all slices(levels) are determined in the same way (no exception for the bottom centroids)
-2. The search for the highest value of the convolution is restricted to a certain area around the lines defined by the lane line polynomials of the last frame (timestep)
+While it is very similar to Method 1, there are two main differences:
+1. The heights of **all** slices(levels) are determined as the image-height divided by the number of slices (no exception for the bottom slice)
+2. The search for the highest value of the convolution is restricted to a certain area around the lines defined by the lane line polynomials of the last frame (timestep). The width of that area is defined by the *margin* parameter
 
 **Excluding questionable centroids**
-As mentioned above, questionable centroids are removed using the excludeLowYieldCentroids function (line 458). This function is envoked in advancedLaneFind.py on line 104 - after the centroids have been identified, but before the polynomals are fitted. 
+As mentioned above, centroids of questionable validity are removed using the excludeLowYieldCentroids function (line 458). This function is envoked in advancedLaneFind.py on line 104 - after the centroids have been identified, but before the polynomals are fitted. 
 
 **Fitting the polynomials**
-Once the questionable centroids have been removed, the remaining centroids are used to fit a quadradic polynomial function. This is done to obtain continuous lane lines as well as to facilitate calculating the lanes geometric properties.See the fitLanePolynimial function on line 153 of helperfunctions.py. 
+Once the questionable centroids have been removed, the remaining centroids are used to fit a quadradic polynomial function. This is done to obtain continuous lane lines as well as to facilitate calculating the lanes' geometric properties.See the fitLanePolynimial function on line 153 of helperfunctions.py. 
 
-Because we know that the vehicle is (almost) parallel to the lane lines, I wanted to force the gradient of the polynomial function to be zero at the bottom of the image. This was achieved by mirroring the centroid data around the bottom edge of the image. (See line 173 and below)
+Because we know that the vehicle is (almost) parallel to the lane lines, I am forcing the gradient of the polynomial function to be zero at the bottom of the image. This is achieved by mirroring the centroid data around the bottom edge of the image. (See line 173 and below)
 
-Also, I wanted to make sure the polynomial has minimal error close to the car (at the bottom of the image). I therefore created two duplicates of the bottom-most left and right centroids before fitting the polynomial (See line 161 and below) 
+Also, I wanted to make sure the polynomial has a minimal error at the bottom of the image (close to the car). I therefore created two duplicates of the bottom-most left and right centroids before fitting the polynomial (See line 161 and below).
 
 Check VALIDITY OF FITS
+WHEN TO USE WHICH METHOD
 
 WHAT TO DO IF INVALID
 
